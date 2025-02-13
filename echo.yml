@@ -4,6 +4,7 @@
   gather_facts: false
 
   tasks:
-    - name: Echo 
+    - name: Echo
       ansible.builtin.debug:
         msg: "{{ lookup('ansible.builtin.env', 'EXTRA_VARS') | default('{}') | from_json }}"
+
