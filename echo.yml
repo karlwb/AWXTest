@@ -8,5 +8,4 @@
       ansible.builtin.debug:
         msg: "{{ extra_vars_dict }}"
       vars:
-        extra_vars_raw: "{{ lookup('ansible.builtin.env', 'EXTRA_VARS', default='{}') }}"
-        extra_vars_dict: "{{ extra_vars_raw | from_json }}"
+        extra_vars_dict: "{{ lookup('ansible.builtin.env', 'EXTRA_VARS', default='{}') | from_json }}"
