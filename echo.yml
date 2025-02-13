@@ -1,0 +1,9 @@
+---
+- name: Echo AWX params
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Echo extra_vars
+      ansible.builtin.debug:
+        msg: "{{ lookup('ansible.builtin.env', 'EXTRA_VARS') | default('{}') }}"
