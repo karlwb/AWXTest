@@ -1,6 +1,6 @@
 ---
 - name: Echo AWX params
-  hosts: localhost
+  hosts: "{{ device|default(all) }}"
   gather_facts: false
 
   tasks:
