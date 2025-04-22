@@ -1,6 +1,6 @@
 ---
 - name: Echo AWX params
-  hosts: "{{ device|default(all) }}"
+  hosts: "{{ trap_details.NodeAlias | default('all') }}"
   gather_facts: false
 
   tasks:
