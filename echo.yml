@@ -6,5 +6,5 @@
   tasks:
     - name: Echo args sub element of extra_vars param
       ansible.builtin.debug:
-        msg: "{{ args }}"
+        msg: "{{ trap_details }}"
 
