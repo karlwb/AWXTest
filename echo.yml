@@ -8,5 +8,6 @@
       ansible.builtin.debug:
         msg: 
           - "{{ trap_details }}"
-          - "{{ trap_details.NodeAlias }}"
+          - "{{ trap_details | type_debug }}"
+          
 
