@@ -11,6 +11,6 @@
           - "{{ trap_details | type_debug }}"
           - "{{ trap_details.keys() | list }}"
           #- "{{ trap_details['NodeAlias'] }}"
-          - "{{ trap_details['NodeAlias'] | default() | combine(trap_details['nodealias'] | default()) }}"
+          - "{{ trap_details['NodeAlias'] | default((trap_details['nodealias']) | default()) }}"
           
 
