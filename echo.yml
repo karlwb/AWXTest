@@ -10,6 +10,6 @@
           - "{{ trap_details }}"
           - "{{ trap_details | type_debug }}"
           - "{{ trap_details.keys() | list }}"
-          - "{{ trap_details['NodeAlias'] }}"
+          #- "{{ trap_details['NodeAlias'] }}"
           
 
