@@ -1,6 +1,6 @@
 ---
 - name: Echo AWX params
-  hosts: "{{ trap_details['NodeAlias'] | default((trap_details['nodealias']) | | default('all') }}"
+  hosts: "{{ trap_details['NodeAlias'] | default((trap_details['nodealias']) | default('all') }}"
   gather_facts: false
 
   tasks:
