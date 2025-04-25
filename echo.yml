@@ -4,7 +4,7 @@
   gather_facts: false
 
   tasks:
-    - name: Echo args sub element of extra_vars param
+    - name: "CMDOUT - Echo trap_details sub element of extra_vars param"
       ansible.builtin.debug:
         msg: 
           - "{{ trap_details }}"
