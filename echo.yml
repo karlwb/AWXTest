@@ -4,9 +4,17 @@
   gather_facts: false
 
   tasks:
-    - name: "CMDOUT - Echo trap_details sub element of extra_vars param"
+    - name: "SOfA AWX Results"
+    # Echo trap_details sub element of extra_vars param"
       ansible.builtin.debug:
-        msg: 
-          - "{{ trap_details }}"
+      msg: |
+        {
+          "summary": "Echoed the input",
+          "hostname": "{{ trap.cmdbname }}",
+          "ip": "{{ device }}",
+          "interface": "{{ NodeAlias }}",
+          "status": "Success",
+          "finalOutput": "{{ trap_details }}"
+        }          
           
 
