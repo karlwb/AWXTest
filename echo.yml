@@ -10,7 +10,7 @@
       msg: |
         {
           "summary": "Echoed the input",
-          "hostname": "{{ trap.cmdbname }}",
+          "hostname": "{{ trap_details.cmdbname }}",
           "ip": "{{ device }}",
           "interface": "{{ NodeAlias }}",
           "status": "Success",
