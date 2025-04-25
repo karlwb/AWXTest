@@ -11,7 +11,7 @@
           {
             "summary": "Echoed the input",
             "hostname": "{{ trap_details.cmdbname }}",
-            "ip": "{{ device }}",
+            "ip": "{{ inventory_hostname }}",
             "interface": "{{ NodeAlias }}",
             "status": "Success",
             "finalOutput": "{{ trap_details }}"
