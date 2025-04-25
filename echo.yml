@@ -10,9 +10,9 @@
         msg: |
           {
             "summary": "Echoed the input",
-            "hostname": "{{ trap_details.cmdbname }}",
+            "hostname": "{{ trap_details['cmdbname'] | default(trap_details['CmdbName']) }}",
             "ip": "{{ inventory_hostname }}",
-            "interface": "{{ NodeAlias }}",
+            "interface": "{{ trap_details['physicalport'] | default(trap_details['PhysicalPort']) }}",
             "status": "Success",
             "finalOutput": "{{ trap_details }}"
           }          
