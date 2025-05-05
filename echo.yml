@@ -12,9 +12,10 @@
             "summary": "Echoed the input",
             "hostname": "{{ trap_details['cmdbname'] | default(trap_details['CmdbName']) }}",
             "ip": "{{ inventory_hostname }}",
-            "interface": "{{ trap_details['physicalport'] | default(trap_details['PhysicalPort']) }}",
-            "status": "Success",
-            "finalOutput": "{{ trap_details }}"
+            "exit_code":"10,
+            "success":"true",
+            "successOutput": "{{ trap_details }}",
+            "failureOutput":""
           }          
           
 
