@@ -1,21 +1,21 @@
 ---
 - name: Echo AWX params
-  hosts: "{{ trap_details['NodeAlias'] | default((trap_details['nodealias']) | default('none')) }}"
+  hosts: "{{ event_data['NodeAlias'] | default((event_data['nodealias']) | default('none')) }}"
   gather_facts: false
 
   tasks:
     - name: "SOfA AWX Results"
-    # Echo trap_details sub element of extra_vars param"
+    # Echo event_data and user_args sub elements of extra_vars param"
       ansible.builtin.debug:
         msg: |
           {
             "summary": "Echoed the input",
-            "hostname": "{{ trap_details['cmdbname'] | default(trap_details['CmdbName']) }}",
+            "hostname": "{{ event_data['cmdbname'] | default(event_data['CmdbName']) }}",
             "ip": "{{ inventory_hostname }}",
-            "exit_code":"10,
-            "success":"true",
-            "successOutput": "{{ trap_details }}",
-            "failureOutput":""
+            "exit_code": 10,
+            "success": true,
+            "successOutput": "Success! event_data:\n{{ event_data }}\n\nuser_args:\n{{user_args}}",
+            "failureOutput": "Fail! event_data:\n{{ event_data }}\n\nuser_args:\n{{user_args}}"
           }          
           
 
