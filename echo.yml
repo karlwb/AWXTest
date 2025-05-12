@@ -6,7 +6,6 @@
   pre_tasks:
     - name: "Debug the event_data and user_args"
       ansible.builtin.debug:
-        hosts: localhost
         msg: |
           {
             "summary": "Echoed the input",
