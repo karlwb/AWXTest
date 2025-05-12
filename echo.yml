@@ -3,16 +3,16 @@
   hosts: "{{ event_data['NodeAlias'] | default((event_data['nodealias']) | default('none')) }}"
   gather_facts: false
 
-  pre_tasks:
-    - name: "Debug the event_data and user_args"
-      ansible.builtin.debug:
-        msg: |
-          {
-            "summary": "Echoed the input",
-            "hostname": "{{ event_data }}",
-          }
-      delegate_to: localhost
-      run_once: true
+  # pre_tasks:
+  #   - name: "Debug the event_data and user_args"
+  #     ansible.builtin.debug:
+  #       msg: |
+  #         {
+  #           "summary": "Echoed the input",
+  #           "hostname": "{{ event_data }}",
+  #         }
+  #     delegate_to: localhost
+  #     run_once: true
       
   tasks:
     - name: "SOfA AWX Results"
