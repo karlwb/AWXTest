@@ -6,11 +6,11 @@
   pre_tasks:
     - name: "Debug the event_data and user_args"
       ansible.builtin.debug:
-        hosts: control_node
+        hosts: localhost
         msg: |
           {
             "summary": "Echoed the input",
-            "hostname": "{{ event_data['NodeAlias'] | default(event_data['NodeAlias']) }}",
+            "hostname": "{{ event_data['NodeAlias'] | default(event_data['NodeAlias']) | default('Nothing found')) }}",
           }
       
   tasks:
