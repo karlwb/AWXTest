@@ -1,9 +1,9 @@
 ---
 - name: Echo AWX params
-  hosts: "{{ event_data['NodeAlias'] | default((event_data['nodealias']) | default('none')) }}"
+  hosts: "{{ event_data['NodeAlias'] | default((event_data['nodealias']) | default('none')) }}, localhost"
   gather_facts: false
 
-  tasks:
+  pre_tasks:
     - name: "Debug the event_data and user_args"
       ansible.builtin.debug:
         hosts: control_node
@@ -13,7 +13,7 @@
             "hostname": "{{ event_data['NodeAlias'] | default(event_data['NodeAlias']) }}",
           }
       
-
+  tasks:
     - name: "SOfA AWX Results"
     # Echo event_data and user_args sub elements of extra_vars param"
       ansible.builtin.debug:
