@@ -11,6 +11,7 @@
             "summary": "Echoed the input",
             "hostname": "{{ event_data }}",
           }
+      hosts: localhost
       
   tasks:
     - name: "SOfA AWX Results"
