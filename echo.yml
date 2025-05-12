@@ -1,6 +1,6 @@
 ---
 - name: Echo AWX params
-  hosts: "{{ event_data['NodeAlias'] | default((event_data['nodealias']) | default('none')) }}, localhost"
+  hosts: "{{ event_data['NodeAlias'] | default((event_data['nodealias']) | default('none')) }}"
   gather_facts: false
 
   pre_tasks:
@@ -12,6 +12,7 @@
             "hostname": "{{ event_data }}",
           }
       delegate_to: localhost
+      run_once: true
       
   tasks:
     - name: "SOfA AWX Results"
