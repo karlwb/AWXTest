@@ -10,7 +10,7 @@
         msg: |
           {
             "summary": "Echoed the input",
-            "hostname": "{{ event_data['NodeAlias'] | default(event_data['NodeAlias']) | default('Nothing found')) }}",
+            "hostname": "{{ event_data['NodeAlias'] | default(event_data['nodealias']) | default('Nothing found')) }}",
           }
       
   tasks:
