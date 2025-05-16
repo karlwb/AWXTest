@@ -15,7 +15,7 @@
   #     run_once: true
       
   tasks:
-    - name: "SOfA AWX Results"
+    - name: "SOfA AWX Result"
     # Echo event_data and user_args sub elements of extra_vars param"
       ansible.builtin.debug:
         msg: |
