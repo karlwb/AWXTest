@@ -1,6 +1,6 @@
 ---
 - name: Echo AWX params
-  hosts: "{{ event_data['NodeAlias'] | default((event_data['nodealias']) | default('none')) }}"
+  hosts: "{{ event_data['CMDBName'] | default((event_data['NodeAlias']) | default('none')) }}"
   gather_facts: false
 
   # pre_tasks:
@@ -21,7 +21,7 @@
         msg: |
           {
             "summary": "Echoed the input",
-            "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default('none')) }}",
+            "hostname": "{{ event_data['CMDBName'] | default((event_data['NodeAlias'] | default('none')) }}",
             "ip": "{{ inventory_hostname }}",
             "exit_code": 10,
             "success": true,
