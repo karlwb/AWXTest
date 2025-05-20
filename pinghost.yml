@@ -42,7 +42,7 @@
         ping_result: "{{ ssh_ping_result }}"
       when: 
         - ssh_ping_result is defined
-        - ssh_ping_result is not none
+        - ssh_ping_result.skipped is not defined
       ignore_errors: true
 
     - name: "Rename the win_ping result"
@@ -50,7 +50,7 @@
         ping_result: "{{ win_ping_result }}"
       when: 
         - win_ping_result is defined
-        - win_ping_result is not none
+        - win_ping_result.skipped is not defined
       ignore_errors: true
 
     - name: "Create success message"
