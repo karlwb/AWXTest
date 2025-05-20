@@ -43,10 +43,9 @@
       when: win_ping_result is defined
       ignore_errors: true
 
-    - name: "SOfA AWX Results"
-      ansible.builtin.debug:
-        msg: |
-          {
+    - name: "Create success message"
+      set_fact: 
+      ping_output: |
             "summary": "Pinged: successful",
             "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default({{ inventory_hostname }})) }}",
             "ip": "{{ inventory_hostname }}",
@@ -54,16 +53,13 @@
             "success": true,
             "successOutput": "Success! {{ ping_result }}",
             "failureOutput": "N/A",
-          }
       when: 
         - ping_result is defined
         - (ping_result.unreachable is not defined or not ping_result.unreachable)
 
-    - name: "SOfA AWX Results"
-    # Echo event_data and user_args sub elements of extra_vars param"
-      ansible.builtin.debug:
-        msg: |
-          {
+    - name: "Create success message"
+      set_fact: 
+      ping_output: |
             "summary": "Ping: failure",
             "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default(inventory_hostname)) }}",
             "ip": "{{ inventory_hostname }}",
@@ -71,9 +67,14 @@
             "success": false,
             "successOutput": "N/A",
             "failureOutput": "Failure: {{ ping_result }}",
-          }
       when:
         - ping_result is defined
         - (ping_result.unreachable is defined and ping_result.unreachable)
           
 
+    - name: "SOfA AWX Results"
+      ansible.builtin.debug:
+        msg: | 
+          {
+            {{ ping_output }}
+          }
