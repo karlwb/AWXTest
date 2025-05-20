@@ -34,13 +34,17 @@
     - name: "Rename the ping result"
       set_fact:
         ping_result: "{{ ssh_ping_result }}"
-      when: ssh_ping_result is defined
+      when: 
+        - ssh_ping_result is defined
+        - ssh_ping_result is not none
       ignore_errors: true
 
     - name: "Rename the win_ping result"
       set_fact:
         ping_result: "{{ win_ping_result }}"
-      when: win_ping_result is defined
+      when: 
+        - win_ping_result is defined
+        - win_ping_result is not none
       ignore_errors: true
 
     - name: "Create success message"
