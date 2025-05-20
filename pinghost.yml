@@ -65,7 +65,7 @@
         msg: |
           {
             "summary": "Ping: failure",
-            "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default({{ inventory_hostname }})) }}",
+            "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default(inventory_hostname)) }}",
             "ip": "{{ inventory_hostname }}",
             "exit_code": 0,
             "success": false,
