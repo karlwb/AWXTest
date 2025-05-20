@@ -57,7 +57,7 @@
         - ping_result is defined
         - (ping_result.unreachable is not defined or not ping_result.unreachable)
 
-    - name: "Create success message"
+    - name: "Create failure message"
       set_fact: 
         ping_output: |
             "summary": "Ping: failure",
