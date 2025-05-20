@@ -25,9 +25,10 @@
     - name: "Ping the host - Linux"
       ansible.builtin.ping:
         data: "pinging"
-      register: ping_result
+      register: ssh_ping_result
       ignore_errors: true
       when: ansible_connection != "winrm"
+      ignore_errors: true
 
     - name: "Ping the host - Windows"
       ansible.windows.win_ping:
@@ -35,33 +36,45 @@
       register: win_ping_result
       ignore_errors: true
       when: ansible_connection == "winrm"
+      ignore_errors: true
 
-    # - name: "Ping Results"
-    #   ansible.builtin.debug:
-    #     msg: |
-    #       {
-    #         "summary": "Pinged the host",
-    #         "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default('none')) }}",
-    #         "ip": "{{ inventory_hostname }}",
-    #         "exit_code": 0,
-    #         "success": true,
-    #         "successOutput": "Success! event_data:\n{{ event_data }}\n\nuser_args:\n{{user_args}}",
-    #         "failureOutput": "Fail! event_data:\n{{ event_data }}\n\nuser_args:\n{{user_args | default({}) }}",
-    #       }
+    - name: "Combine the ping results"
+      set_fact:
+        ping_result: "{{ssh_ping_result | default(win_ping_result | default('')) }}"
+      when: ssh_ping_result is defined or win_ping_result is defined
+      ignore_errors: true
 
+    - name: "SOfA AWX Results"
+      ansible.builtin.debug:
+        msg: |
+          {
+            "summary": "Pinged the host successfully",
+            "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default('none')) }}",
+            "ip": "{{ inventory_hostname }}",
+            "exit_code": 10,
+            "success": true,
+            "successOutput": "Success! {{ ping_result }}",
+            "failureOutput": "N/A",
+          }
+      when: 
+        - ping_result is defined
+        - (ping_result.unreachable is not defined or not ping_result.unreachable)
 
-    # - name: "SOfA AWX Results"
-    # # Echo event_data and user_args sub elements of extra_vars param"
-    #   ansible.builtin.debug:
-    #     msg: |
-    #       {
-    #         "summary": "Echoed the input",
-    #         "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default('none')) }}",
-    #         "ip": "{{ inventory_hostname }}",
-    #         "exit_code": 10,
-    #         "success": true,
-    #         "successOutput": "Success! event_data:\n{{ event_data }}\n\nuser_args:\n{{user_args}}",
-    #         "failureOutput": "Fail! event_data:\n{{ event_data }}\n\nuser_args:\n{{user_args | default({}) }}",
-    #       }          
+    - name: "SOfA AWX Results"
+    # Echo event_data and user_args sub elements of extra_vars param"
+      ansible.builtin.debug:
+        msg: |
+          {
+            "summary": "Pinged the host failed",
+            "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default('none')) }}",
+            "ip": "{{ inventory_hostname }}",
+            "exit_code": 0,
+            "success": false,
+            "successOutput": "N/A",
+            "failureOutput": "Failure: {{ ping_result }}",
+          }
+      when:
+        - ping_result is defined
+        - (ping_result.unreachable is defined and ping_result.unreachable)
           
 
