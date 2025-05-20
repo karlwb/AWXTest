@@ -19,7 +19,6 @@
       ansible.builtin.ping:
         data: "pinging"
       register: ssh_ping_result
-      ignore_errors: true
       when: ansible_connection != "winrm"
       ignore_errors: true
 
@@ -27,7 +26,6 @@
       ansible.windows.win_ping:
         win_ping:
       register: win_ping_result
-      ignore_errors: true
       when: ansible_connection == "winrm"
       ignore_errors: true
 
