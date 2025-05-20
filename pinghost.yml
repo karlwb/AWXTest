@@ -21,6 +21,7 @@
       register: ssh_ping_result
       when: ansible_connection != "winrm"
       ignore_errors: true
+      ignore_unreachable: true
 
     - name: "Ping the host - Windows"
       ansible.windows.win_ping:
@@ -28,6 +29,7 @@
       register: win_ping_result
       when: ansible_connection == "winrm"
       ignore_errors: true
+      ignore_unreachable: true
 
     - name: "Combine the ping results"
       set_fact:
