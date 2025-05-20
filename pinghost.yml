@@ -45,7 +45,7 @@
 
     - name: "Create success message"
       set_fact: 
-      ping_output: |
+        ping_output: |
             "summary": "Pinged: successful",
             "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default({{ inventory_hostname }})) }}",
             "ip": "{{ inventory_hostname }}",
@@ -59,7 +59,7 @@
 
     - name: "Create success message"
       set_fact: 
-      ping_output: |
+        ping_output: |
             "summary": "Ping: failure",
             "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default(inventory_hostname)) }}",
             "ip": "{{ inventory_hostname }}",
