@@ -1,0 +1,60 @@
+---
+- name: Ping 
+  hosts: "{{ event_data['NodeAlias'] | default((event_data['nodealias']) | default('none')) }}"
+  gather_facts: false
+
+  # pre_tasks:
+  #   - name: "Debug the event_data and user_args"
+  #     ansible.builtin.debug:
+  #       msg: |
+  #         {
+  #           "summary": "Echoed the input",
+  #           "hostname": "{{ event_data }}",
+  #         }
+  #     delegate_to: localhost
+  #     run_once: true
+      
+  tasks:
+    - name: print magic vars
+      debug:
+        var: vars
+      delegate_to: localhost
+      run_once: true
+      no_log: true
+
+    # - name: "Ping the host"
+    #   ansible.builtin.ping:
+    #     data: "pinging"
+    #   register: ping_result
+    #   ignore_errors: true
+    #   when: event_data['NodeAlias'] is defined or event_data['nodealias'] is defined
+
+    # - name: "Ping Results"
+    #   ansible.builtin.debug:
+    #     msg: |
+    #       {
+    #         "summary": "Pinged the host",
+    #         "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default('none')) }}",
+    #         "ip": "{{ inventory_hostname }}",
+    #         "exit_code": 0,
+    #         "success": true,
+    #         "successOutput": "Success! event_data:\n{{ event_data }}\n\nuser_args:\n{{user_args}}",
+    #         "failureOutput": "Fail! event_data:\n{{ event_data }}\n\nuser_args:\n{{user_args | default({}) }}",
+    #       }
+
+
+    # - name: "SOfA AWX Results"
+    # # Echo event_data and user_args sub elements of extra_vars param"
+    #   ansible.builtin.debug:
+    #     msg: |
+    #       {
+    #         "summary": "Echoed the input",
+    #         "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default('none')) }}",
+    #         "ip": "{{ inventory_hostname }}",
+    #         "exit_code": 10,
+    #         "success": true,
+    #         "successOutput": "Success! event_data:\n{{ event_data }}\n\nuser_args:\n{{user_args}}",
+    #         "failureOutput": "Fail! event_data:\n{{ event_data }}\n\nuser_args:\n{{user_args | default({}) }}",
+    #       }          
+          
+
