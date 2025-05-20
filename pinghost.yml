@@ -31,10 +31,16 @@
       ignore_errors: true
       ignore_unreachable: true
 
-    - name: "Combine the ping results"
+    - name: "Rename the ping result"
       set_fact:
-        ping_result: "{{ssh_ping_result | default(win_ping_result | default('')) }}"
-      when: ssh_ping_result is defined or win_ping_result is defined
+        ping_result: "{{ ssh_ping_result }}"
+      when: ssh_ping_result is defined
+      ignore_errors: true
+
+    - name: "Rename the win_ping result"
+      set_fact:
+        ping_result: "{{ win_ping_result }}"
+      when: win_ping_result is defined
       ignore_errors: true
 
     - name: "SOfA AWX Results"
