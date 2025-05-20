@@ -15,13 +15,6 @@
   #     run_once: true
       
   tasks:
-    - name: print magic vars
-      debug:
-        var: vars
-      delegate_to: localhost
-      run_once: true
-      #no_log: true
-
     - name: "Ping the host - Linux"
       ansible.builtin.ping:
         data: "pinging"
