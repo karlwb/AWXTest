@@ -20,7 +20,7 @@
         var: vars
       delegate_to: localhost
       run_once: true
-      no_log: true
+      #no_log: true
 
     # - name: "Ping the host"
     #   ansible.builtin.ping:
