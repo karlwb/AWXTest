@@ -23,6 +23,12 @@
       ignore_errors: true
       ignore_unreachable: true
 
+    - name: "Ping the host - Linux"
+      debug:
+        msg: 
+          - "{{ ssh_ping_result }}"
+      ignore_errors: true
+
     - name: "Ping the host - Windows"
       ansible.windows.win_ping:
         win_ping:
