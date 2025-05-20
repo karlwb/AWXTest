@@ -22,12 +22,19 @@
       run_once: true
       #no_log: true
 
-    # - name: "Ping the host"
-    #   ansible.builtin.ping:
-    #     data: "pinging"
-    #   register: ping_result
-    #   ignore_errors: true
-    #   when: event_data['NodeAlias'] is defined or event_data['nodealias'] is defined
+    - name: "Ping the host - Linux"
+      ansible.builtin.ping:
+        data: "pinging"
+      register: ping_result
+      ignore_errors: true
+      when: ansible_connection != "winrm"
+
+    - name: "Ping the host - Windows"
+      ansible.windows.win_ping:
+        win_ping:
+      register: win_ping_result
+      ignore_errors: true
+      when: ansible_connection == "winrm"
 
     # - name: "Ping Results"
     #   ansible.builtin.debug:
