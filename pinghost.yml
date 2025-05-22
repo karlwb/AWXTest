@@ -56,8 +56,8 @@
     - name: "TASK - Create success message"
       set_fact: 
         ping_output: |
-            "summary": "Pinged: successful",
-            "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default({{ inventory_hostname }})) }}",
+            "summary": "Ping: Success",
+            "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default(inventory_hostname)) }}",
             "ip": "{{ inventory_hostname }}",
             "exit_code": 10,
             "success": true,
@@ -70,7 +70,7 @@
     - name: "TASK - Create failure message"
       set_fact: 
         ping_output: |
-            "summary": "Ping: failure",
+            "summary": "Ping: Failure",
             "hostname": "{{ event_data['cmdbname'] | default((event_data['CmdbName']) | default(inventory_hostname)) }}",
             "ip": "{{ inventory_hostname }}",
             "exit_code": 0,
