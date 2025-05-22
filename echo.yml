@@ -27,6 +27,7 @@
             "success": true,
             "successOutput": "Success! event_data:\n{{ event_data }}\n\nuser_args:\n{{user_args}}",
             "failureOutput": "Fail! event_data:\n{{ event_data }}\n\nuser_args:\n{{user_args | default({}) }}",
-          }          
+          }
+      delegate_to: inventory_hostname       
           
 
