@@ -37,6 +37,12 @@
       ignore_errors: true
       ignore_unreachable: true
 
+    - name: "Debug - ping the host - Windows"
+      debug:
+        msg: 
+          - "{{ win_ping_result }}"
+      ignore_errors: true
+
     - name: "TASK - Rename the ping result"
       set_fact:
         ping_result: "{{ ssh_ping_result }}"
