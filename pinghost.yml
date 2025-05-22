@@ -15,7 +15,7 @@
   #     run_once: true
       
   tasks:
-    - name: "Ping the host - Linux"
+    - name: "TASK - Ping the host - Linux"
       ansible.builtin.ping:
         data: "pinging"
       register: ssh_ping_result
@@ -23,13 +23,13 @@
       ignore_errors: true
       ignore_unreachable: true
 
-    - name: "Ping the host - Linux"
+    - name: "Debug - ping the host - Linux"
       debug:
         msg: 
           - "{{ ssh_ping_result }}"
       ignore_errors: true
 
-    - name: "Ping the host - Windows"
+    - name: "TASK - Ping the host - Windows"
       ansible.windows.win_ping:
         data: "pinging"
       register: win_ping_result
@@ -37,7 +37,7 @@
       ignore_errors: true
       ignore_unreachable: true
 
-    - name: "Rename the ping result"
+    - name: "TASK - Rename the ping result"
       set_fact:
         ping_result: "{{ ssh_ping_result }}"
       when: 
@@ -45,7 +45,7 @@
         - ssh_ping_result.skipped is not defined
       ignore_errors: true
 
-    - name: "Rename the win_ping result"
+    - name: "TASK - Rename the win_ping result"
       set_fact:
         ping_result: "{{ win_ping_result }}"
       when: 
@@ -53,7 +53,7 @@
         - win_ping_result.skipped is not defined
       ignore_errors: true
 
-    - name: "Create success message"
+    - name: "TASK - Create success message"
       set_fact: 
         ping_output: |
             "summary": "Pinged: successful",
@@ -67,7 +67,7 @@
         - ping_result is defined
         - (ping_result.unreachable is not defined or not ping_result.unreachable)
 
-    - name: "Create failure message"
+    - name: "TASK - Create failure message"
       set_fact: 
         ping_output: |
             "summary": "Ping: failure",
