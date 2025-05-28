@@ -1,0 +1,11 @@
+# This file contains Email configuration settings.
+# It is used to set up the email server and recipient details for sending notifications.
+# The settings include the recipient's email address, sender's email address, SMTP host, port, and mail host.
+
+  email_recipient: "someshwaran.palani@lumen.com"
+  email_from: "Automation@lumen.com"
+  email_cc: "karl.boehnker@lumen.com"
+  smtp_host: "smtp1.rpod.savvis.net"
+  smtp_port: 25
+  mail_host: 172.23.105.4
+  
