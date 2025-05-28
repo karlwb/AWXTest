@@ -1,0 +1,307 @@
+---
+- name: Windows Disk Handler
+  hosts: "{{ event_data['Node'] | default (event_data['node']) | default('none') }}"
+  #hosts: "{{ inventory_hostname | default('localhost') }}" # Target hosts, can be overridden with -e "host=your_host"
+  gather_facts: yes
+  vars:
+    # --- Playbook Configuration ---
+    customer_name: "LIT"
+    # --- Playbook Status Tracking ---
+    playbook_success: true # Assume success initially for each host
+    playbook_failure_reason: "No failure reported." # Default message
+    final_report_body: "" # Holds the generated report for email and SOfA
+    s_hostname: "{{ ansible_facts.fqdn | default(ansible_facts.hostname) | default (( event_data['Node']) | default (event_data['node'])) }}"
+    volume_name: "{{ user_args['volume_name'] | default (arguments['volume_name']) |  default ('') | trim }}"
+  tasks:
+    # --- Email Configuration ---
+    - name: Include Emailvars.yml
+      include_vars:
+        file: Email_vars.yml
+      run_once: yes
+    - name: print
+      debug:
+        msg: 
+          volume_name: "{{ volume_name }}"
+
+    - name: Validate mandatory 'volume_name' variable
+      set_fact:
+        playbook_success: false
+        playbook_failure_reason: "CRITICAL: The 'volume_name' variable is undefined or empty. This playbook requires 'volume_name' to be specified."
+      when: volume_name is not defined or volume_name | trim == ""
+      ignore_errors: true 
+
+    # Block for all per-host operations. This allows a common rescue and SOfA reporting.
+    - name: "Host Operations Block for {{ s_hostname }} on volume {{ volume_name }}"
+      when: playbook_success # Only proceed if the initial checks are successful
+      block:
+        - name: Check if Host is Reachable
+          ansible.windows.win_ping:
+          register: host_reachable_status
+          ignore_errors: true # We'll handle the failure in the next task
+
+        - name: Evaluate Host Reachability
+          set_fact:
+            playbook_success: false
+            playbook_failure_reason: "Host Unreachable: {{ s_hostname }}. Ping failed or did not return 'pong'."
+            final_report_body: "Host {{ s_hostname }} is unreachable. No disk analysis performed."
+          when: host_reachable_status.failed or (host_reachable_status.ping is defined and host_reachable_status.ping != "pong")
+
+        - name: End further processing for this host if unreachable
+          meta: end_play
+          when: not playbook_success # If playbook_success became false due to ping
+
+        # --- Main processing if host is reachable ---
+        - name: Get OS Drive Letter
+          win_shell: |
+              (Get-WmiObject Win32_OperatingSystem).SystemDrive
+          register: os_drive_wmi_result
+          changed_when: false
+          failed_when: os_drive_wmi_result.rc != 0
+          vars:
+            ansible_win_powershell_execution_policy: Bypass # Ensure script can run
+
+        - name: Set OS Drive Fact
+          set_fact:
+            os_drive_letter: "{{ (os_drive_wmi_result.stdout | trim) if os_drive_wmi_result.stdout is defined else '' }}"
+
+        - name: Determine if target volume is the OS Drive
+          set_fact:
+            target_is_os_drive: "{{ (volume_name | upper) == (os_drive_letter | upper) }}"
+
+        - name: Get Windows Version using PowerShell
+          win_shell: |
+              (Get-WmiObject -Class Win32_OperatingSystem).Caption
+          register: windows_version_result
+
+        - name: Set OS Version identifier (e.g., for 2003 specific logic)
+          set_fact:
+            is_windows_server_2003: "{{ ('2003' in (windows_version_result.stdout | default(''))) }}"
+        - name: Debug Drive and OS Info
+          debug:
+            msg:
+              - "Target Volume: {{ volume_name }}"
+              - "Detected OS Drive: {{ os_drive_letter }}"
+              - "Is Target OS Drive: {{ target_is_os_drive }}"
+              - "Windows Edition: {{ windows_version_result.stdout | default('N/A') }}"
+              - "Is Windows Server 2003: {{ is_windows_server_2003 }}"
+
+        # --- Conditional Disk Analysis ---
+        - name: Perform Disk Analysis (Non-OS Drive)
+          when: not target_is_os_drive
+          block:
+            - name: Fetch Top 10 largest files (Non-OS Drive)
+              win_shell: | 
+                $volume_name = "{{ volume_name }}"
+                $ErrorActionPreference = "SilentlyContinue"
+                Get-ChildItem "$volume_name" -Recurse -Force | Where-Object { -not $_.PSIsContainer } | Sort-Object Length -Descending | Select-Object -First 10 | Select-Object FullName, @{Name="Size(MB)"; Expression={ "{0:N2}" -f ($_.Length / 1MB) }} | Format-List
+
+              register: r_top_10_files
+              ignore_errors: true
+
+            - name: Fetch Top 10 largest files modified in last hour (Non-OS Drive)
+              win_shell: |
+                 gci {{ volume_name }}\ -recurse -force | where {(!$_.PSIsContainer) -and ($_.LastWriteTime -gt [DateTime]::Now.AddHours(-1))} | sort length -desc | select -first 10 | select FullName,@{Name="Size(MB)";Expression={ "{0:N2}" -f ($_.Length / 1MB)}} | fl;
+              register: r_top_10_recent_files
+              ignore_errors: true
+
+            - name: Fetch Top 5 largest dirs and their 5 largest subdirs (Non-OS Drive)
+              win_shell: |
+                $volume_name = "{{ volume_name }}"
+                $ErrorActionPreference = "SilentlyContinue"
+                $RootFolders = Get-ChildItem "$volume_name" | Where-Object { $_.PSIsContainer } | ForEach-Object {
+                $Size = (Get-ChildItem $_.FullName -Recurse -Force | Where-Object { -not $_.PSIsContainer } | Measure-Object -Sum Length).Sum
+                [PSCustomObject]@{ Path = $_.FullName; "Size(MB)" = [math]::Round($Size / 1MB, 2) }
+                } | Sort-Object "Size(MB)" -Descending | Select-Object -First 5
+
+                $RootFolders | ForEach-Object {
+                  "`n"
+                  $_
+                  Get-ChildItem $_.Path | Where-Object { $_.PSIsContainer } | ForEach-Object {
+                         $Size = (Get-ChildItem $_.FullName -Recurse -Force | Where-Object { -not $_.PSIsContainer } | Measure-Object -Sum Length).Sum
+                         [PSCustomObject]@{ Path = $_.FullName; "Size(MB)" = [math]::Round($Size / 1MB, 2) }
+                     } | Sort-Object "Size(MB)" -Descending | Select-Object -First 5
+                }
+              ignore_errors: true
+              register: r_top_dirs_subdirs
+
+            - name: Prepare Report Sections (Non-OS Drive)
+              set_fact:
+                report_sections_data:
+                  - { title: "Top 10 largest files", content: "{{ r_top_10_files.stdout | default('Data not available or command failed.') }}" }
+                  - { title: "Top 10 largest files modified in the last hour", content: "{{ r_top_10_recent_files.stdout | default('Data not available or command failed.') }}" }
+                  - { title: "Top 5 largest directories and their top 5 largest subdirectories", content: "{{ r_top_dirs_subdirs.stdout | default('Data not available or command failed.') }}" }
+
+        - name: Perform Disk Analysis (OS Drive)
+          when: target_is_os_drive
+          block:
+            - name: Tasks for Windows Server 2003 (OS Drive)
+              when: is_windows_server_2003
+              block:
+                - name: Find size of uncompressed $NtUninstall, $hf_mig, i386 (OS Drive 2003)
+                  win_shell: |
+                      $ErrorActionPreference = "SilentlyContinue"
+                      $foldersToScan = @(
+                          "C:\WINDOWS\$NtUninstall%$",
+                          "C:\WINDOWS\$hf_mig$",
+                          "C:\i386"
+                      )
+
+                      $results = foreach ($Folder in $foldersToScan) {
+                          Get-WmiObject -Namespace "root\cimv2" -Class "Win32_Directory" -Filter "Name like '$Folder'" | Where-Object { -not $_.Compressed } | ForEach-Object {
+                              $Size = (New-Object -COMObject Scripting.FileSystemObject).GetFolder($_.Name).Size
+                              [PSCustomObject]@{
+                                  Path = $_.Name
+                                  "Size(MB)" = [math]::Round($Size / 1MB, 2)
+                              }
+                          }
+                      }
+
+                      $results | Format-Table -AutoSize | Out-String
+                      [System.GC]::Collect()
+                  register: r_uncompressed_2003
+                  ignore_errors: true
+                - name: Prepare Report Sections (OS Drive 2003)
+                  set_fact:
+                    report_sections_data:
+                      - { title: "Size of uncompressed $NtUninstall, $hf_mig, i386 folders", content: "{{ r_uncompressed_2003.stdout | default('Data not available or command failed.') }}" }
+
+            - name: Tasks for Modern Windows OS (OS Drive, Non-2003)
+              when: not is_windows_server_2003
+              block:
+                - name: Find size of common temp/log/download folders (OS Drive, Modern)
+                  win_shell: |
+                    $ErrorActionPreference = "SilentlyContinue"
+                    $foldersToScan = @(
+                        "C:\Windows\SoftwareDistribution\Download",
+                        "C:\Windows\System32\LogFiles",
+                        "C:\WINDOWS\System32\Wbem\logs",
+                        "C:\WINDOWS\Temp",
+                        "C:\WINDOWS\pchealth",
+                        "C:\Temp"
+                    )
+                    $results = foreach ($Folder in $foldersToScan) {
+                        [PSCustomObject]@{
+                            Path = $Folder
+                            "Size(MB)" = [math]::Round((Get-ChildItem -Path $Folder -Recurse -Force -File -ErrorAction SilentlyContinue | Measure-Object -Sum Length -ErrorAction SilentlyContinue).Sum / 1MB, 2)
+                        }
+                    }
+                    $results | Format-Table -AutoSize | Out-String
+                    [System.GC]::Collect()
+                  register: r_temp_log_folders_modern
+                  ignore_errors: true
+
+                - name: Find top 5 largest user profiles (OS Drive, Modern)
+                  win_shell: |
+                    $ErrorActionPreference = "SilentlyContinue"
+                    $OSName = (Get-WmiObject -Class Win32_OperatingSystem).Caption
+                    $ProfilesPath = if ($OSName -match "2003") { "C:\Documents and Settings" } elseif ($OSName -match "2008") { "C:\Users" } else { "C:\Users" }
+
+                    Get-ChildItem $ProfilesPath | Where-Object { $_.PSIsContainer } |
+                        Select-Object @{Name = "Path"; Expression = { $_.FullName } },
+                                      @{Name = "Size(MB)"; Expression = { [math]::Round((New-Object -COMObject Scripting.FileSystemObject).GetFolder($_.FullName).Size / 1MB, 2) } } |
+                        Sort-Object "Size(MB)" -Descending |
+                        Select-Object -First 5 |
+                        Format-Table -AutoSize
+
+                    [System.GC]::Collect()
+                  register: r_top_profiles_modern
+                  ignore_errors: true
+                - name: Prepare Report Sections (OS Drive, Modern)
+                  set_fact:
+                    report_sections_data:
+                      - title: "Size of common Temp, Log, SoftwareDistribution/Download folders"
+                        content: |
+                          {{ r_temp_log_folders_modern.stdout | default('Data not available or command failed.') | regex_replace('(?m)^', '    ') }}
+                      - title: "Top 5 largest user profiles"
+                        content: |
+                          {{ r_top_profiles_modern.stdout | default('Data not available or command failed.') | regex_replace('(?m)^', '    ') }}     # --- Assemble and Send Report ---
+        - name: Assemble Final Report Body
+          set_fact:
+            final_report_body: |
+              Hi Team,
+
+              Below is the disk space utilization report for volume  '{{ volume_name }}'  on server '{{ s_hostname }}'.
+
+              Target Volume Type: {{ 'OS Drive' if target_is_os_drive else 'Non-OS Drive'  }} 
+              Detected OS Drive: ({{ os_drive_letter }})
+              Windows Edition: {{ windows_version_result.stdout | default('N/A') | trim }}     
+              Is Windows Server 2003: {{ is_windows_server_2003 | ternary('Yes', 'No') }}
+              ----------------------------------------------------------------------------
+              {% for section in report_sections_data if report_sections_data is defined %}
+
+              {{ section.title }}:
+
+              -----------------------------------------------------------------------------
+
+              {{ (section.content | trim) if section.content is defined and section.content | trim != "" else "No data collected or N/A for this section." }}
+
+              {% endfor %}
+
+              {% if report_sections_data is not defined or report_sections_data | length == 0 %}
+              No specific disk analysis data was generated. This might be due to an issue or inapplicable criteria.
+              {% endif %}
+
+              Note: If any report section is missing or shows 'Data not available', it might be due to command failure,
+              insufficient privileges on specific folders, or the section not being applicable to this OS/Drive type.
+              Please report to the Automation team if issues persist.
+
+              Thanks,
+              Automation Team
+          when: playbook_success # Only assemble if host was reachable and no major failures occurred before this
+
+
+        - name: Send Diagnostic Data via Email
+          mail:
+            host: "{{ smtp_host }}"
+            port: "{{ smtp_port }}"
+            from: "{{ email_from }}"
+            to: "{{ email_recipient.split(',') if email_recipient is string else email_recipient }}" # Handles string or list
+            cc: "{{ (email_cc.split(',') if email_cc is string else email_cc) if email_cc is defined and email_cc | trim != '' else omit }}"
+            subject: "{{ customer_name }} | {{ s_hostname }} : Disk utilization on {{ volume_name }} ({{ 'OS Drive' if target_is_os_drive else 'Non-OS Drive' }})"
+            body: "{{ final_report_body }}"
+          delegate_to: "{{ mail_host | default('localhost') }}" # Email is sent from the specified mail_host (controller by default)
+          run_once: false
+          register: mail_send_status
+          ignore_errors: true
+          when: final_report_body | length > 0 and playbook_success
+
+        - name: Update playbook status if mail sending failed
+          set_fact:
+            playbook_success: false # Downgrade success if email fails
+            playbook_failure_reason: "Disk analysis performed. However, failed to send email. Error: {{ mail_send_status.msg | default(mail_send_status.exception | default('Unknown mail module error.')) }}."
+          when: mail_send_status is defined and mail_send_status.failed
+        - name: Block output
+          set_fact:
+            Block_output:
+              Target_volume: "{{ volume_name }}"
+              Final_Report: "{{ final_report_body }}"
+              email_status: >-
+                {% if not playbook_success and "Host Unreachable" in playbook_failure_reason %}Not Attempted (Host Unreachable)
+                {% elif mail_send_status is not defined and playbook_success %}Not Attempted (No report generated or condition not met)
+                {% elif mail_send_status is defined and not mail_send_status.failed %}Sent Successfully
+                {% elif mail_send_status is defined and mail_send_status.failed %}Failed to Send
+                {% else %}Not Attempted (Due to prior errors)
+                {% endif %}
+          when: playbook_success # Only set if the playbook was successful
+          vars:
+            # Ensure mail_send_status is accessible even if the mail task was skipped
+            mail_send_status: "{{ mail_send_status | default({}) }}"
+
+      rescue:
+        - name: Handle unexpected errors during host processing
+          set_fact:
+            playbook_success: false
+            playbook_failure_reason: "An unexpected error occurred during disk analysis on '{{ s_hostname }}' for volume '{{ volume_name }}'. Task: '{{ ansible_failed_task.name | default('Unknown task') }}'. Error: {{ ansible_failed_result.msg | default('No specific error message.') }}"
+            final_report_body: |
+              Processing FAILED for server '{{ s_hostname }}', volume '{{ volume_name }}'.
+              Reason: {{ playbook_failure_reason }}
+
+    # --- SOfA (System of Automation) Reporting Task ---
+    # This task runs for every host in the play, after its respective block/rescue.
+    - name: "SOfA AWX Result"
+      debug:
+        msg:
+          summary: "{{ 'Windows disk analysis and notification process COMPLETED.' if playbook_success else 'Windows disk analysis and/or notification process FAILED.' }}"
+          success: "{{ playbook_success | bool }}"
+          successOutput: "{{ (Block_output if playbook_success and Block_output is defined and Block_output is defined else 'NA') | string }}"
+          failureOutput: "{{ (playbook_failure_reason if not playbook_success else 'No failure reported.') | string }}"
